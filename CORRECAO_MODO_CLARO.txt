@@ -1,0 +1,18 @@
+Correção do modo claro e das preferências de aparência
+
+Arquivos alterados:
+- static/js/app.js
+- static/css/app.css
+- app/rotas/acesso.py
+
+O problema principal era que o formulário de aparência era criado somente quando o modal abria, mas o JavaScript tentava registrar o evento de envio antes de o formulário existir. Além disso, a chamada de gravação apontava para uma rota que não existia no backend e o erro era ignorado.
+
+Agora:
+- o evento de salvar é registrado quando o modal é aberto;
+- a rota PUT /api/sessao/preferencias valida e guarda as preferências na sessão;
+- o tema escolhido é reaplicado quando a página é carregada;
+- tamanho do texto e cor de destaque também são aplicados.
+
+Observação:
+As preferências ficam guardadas na sessão do Flask. Elas continuam ao navegar e recarregar páginas enquanto a sessão de login estiver ativa; ao sair da conta, a sessão é encerrada.
+Por segurança, o arquivo .env original não foi incluído. Copie .env.example para .env e preencha com suas próprias credenciais.

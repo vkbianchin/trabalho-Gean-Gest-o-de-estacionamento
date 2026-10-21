@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="">
+  <title>Entrar · ParkFlow</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+</head>
+<body class="auth-body" data-page="login">
+  <main class="auth-wrap">
+    <a class="brand auth-brand" href="#"><span class="brand-mark">P</span><span><strong>ParkFlow</strong><small>GESTÃO DE ESTACIONAMENTO</small></span></a>
+    <section class="auth-card">
+      <div class="auth-symbol">↗</div>
+      <p class="eyebrow">ACESSO AO SISTEMA</p>
+      <h1>Bem-vindo de volta.</h1>
+      <p class="muted">Entre com suas credenciais para acessar a operação do estacionamento.</p>
+      <form id="login-form" class="form-stack">
+        <label>Login<input name="login" autocomplete="username" required autofocus placeholder="Digite seu login"></label>
+        <label>Senha<div class="password-wrap"><input id="login-password" name="senha" type="password" autocomplete="current-password" required placeholder="Digite sua senha"><button type="button" class="show-password" data-toggle-password="login-password">Mostrar</button></div></label>
+        <p id="caps-warning" class="form-hint" hidden>Caps Lock está ativado.</p>
+        <button class="btn btn-primary btn-wide" type="submit">Entrar no sistema <span>→</span></button>
+        <p id="login-error" class="form-error" role="alert"></p>
+      </form>
+      <p class="forgot-note">Esqueceu a senha? Peça ao administrador.</p>
+    </section>
+    <p class="auth-foot">Acesso restrito a usuários autorizados.</p>
+  </main>
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+</body>
+</html>

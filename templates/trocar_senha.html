@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Trocar senha · ParkFlow{% endblock %}
+{% block heading %}Trocar senha{% endblock %}
+{% block content %}
+<div class="page-intro"><p>Atualize sua senha para manter sua conta protegida.</p></div>
+<div class="panel narrow-panel">
+  <div class="panel-heading"><div><h2>Definir nova senha</h2><p>Preencha os três campos para continuar.</p></div></div>
+  <form id="change-password-form" class="form-grid">
+    <label class="span-2">Senha atual<input name="senha_atual" type="password" autocomplete="current-password" required></label>
+    <label>Nova senha<input id="new-password" name="nova_senha" type="password" minlength="8" autocomplete="new-password" required><small>Mínimo de 8 caracteres, com letras e números.</small></label>
+    <label>Confirmar nova senha<input name="confirmacao" type="password" minlength="8" autocomplete="new-password" required></label>
+    <div class="password-rules span-2" id="password-rules"><span data-rule="length">○ Pelo menos 8 caracteres</span><span data-rule="letters">○ Contém letras</span><span data-rule="number">○ Contém números</span></div>
+    <div class="form-actions span-2"><button class="btn btn-primary" type="submit">Salvar nova senha</button></div>
+  </form>
+</div>
+{% endblock %}

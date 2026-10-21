@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="">
+  <title>{% block title %}{{ titulo or "ParkFlow" }}{% endblock %} · ParkFlow</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+</head>
+<body data-page="{{ pagina or '' }}">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="/"><span class="brand-mark">P</span><span><strong>ParkFlow</strong><small>GESTÃO DE ESTACIONAMENTO</small></span></a>
+      <div class="nav-label">OPERAÇÃO</div>
+      <nav class="nav-list">
+        <a href="/" data-nav="painel"><span>◫</span>Operação</a>
+        <a href="/caixa" data-nav="caixa"><span>＄</span>Caixa</a>
+        <a href="/movimentacoes" data-nav="movimentacoes"><span>↕</span>Movimentações</a>
+      </nav>
+      <div class="nav-label">CADASTROS</div>
+      <nav class="nav-list">
+        <a href="/clientes" data-nav="clientes"><span>♙</span>Clientes</a>
+        <a href="/veiculos" data-nav="veiculos"><span>▰</span>Veículos</a>
+        <a href="/catalogos" data-nav="catalogos"><span>☷</span>Catálogos</a>
+      </nav>
+      <div class="nav-label">GESTÃO</div>
+      <nav class="nav-list">
+        <a href="/vagas" data-nav="vagas"><span>▦</span>Vagas</a>
+        <a href="/contratos" data-nav="contratos"><span>▤</span>Contratos mensalistas</a>
+        <a href="/pagamentos" data-nav="pagamentos"><span>◉</span>Pagamentos</a>
+      </nav>
+      <div class="nav-label admin-nav-label">ADMINISTRAÇÃO</div>
+      <nav class="nav-list admin-nav">
+        <a href="/configuracoes" data-nav="configuracoes"><span>⚙</span>Configurações</a>
+        <a href="/usuarios" data-nav="usuarios"><span>♧</span>Usuários</a>
+        <a href="/auditoria" data-nav="auditoria"><span>≡</span>Auditoria</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="user-mini"><span class="avatar" id="user-avatar">U</span><span><strong id="user-name">Usuário</strong><small id="user-role">Carregando perfil...</small></span></div>
+        <button class="nav-logout" id="account-menu-button" type="button">Minha conta <span>⌄</span></button>
+        <div class="account-menu" id="account-menu" hidden>
+          <a href="/trocar-senha">Alterar senha</a>
+          <button type="button" id="settings-shortcut">Ajustes de aparência</button>
+          <button type="button" id="logout-button">Sair do sistema</button>
+        </div>
+      </div>
+    </aside>
+    <main class="main-area">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobile-menu" aria-label="Abrir menu">☰</button>
+        <div class="page-heading"><span class="eyebrow">PARKFLOW / GESTÃO</span><h1>{% block heading %}{{ titulo or "Operação" }}{% endblock %}</h1></div>
+        <div class="topbar-right"><span class="cash-indicator" id="cash-indicator"><i></i>Verificando caixa</span><span class="top-date" id="today-date"></span></div>
+      </header>
+      <section class="page-content" id="app-content">{% block content %}<div class="loading-panel">Preparando tela...</div>{% endblock %}</section>
+      <footer class="footer"><span>ParkFlow</span> · Gestão local do estacionamento <span class="footer-right">Operação segura · Registro de atividades</span></footer>
+    </main>
+  </div>
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+  <div id="modal-root"></div>
+</body>
+</html>
