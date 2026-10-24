@@ -1,4 +1,6 @@
+import time
 from contextlib import contextmanager
+from mysql.connector.errors import PoolError
 from mysql.connector.pooling import MySQLConnectionPool
 from flask import current_app, g
 
@@ -19,7 +21,15 @@ def conexao():
     if "db_connection" not in g:
         if _pool is None:
             inicializar_pool(current_app)
-        g.db_connection = _pool.get_connection()
+        # Se todas as conexões estiverem em uso, espera até ~5 s por uma livre em vez de falhar na hora.
+        for tentativa in range(50):
+            try:
+                g.db_connection = _pool.get_connection()
+                break
+            except PoolError:
+                if tentativa == 49:
+                    raise
+                time.sleep(0.1)
     return g.db_connection
 
 @contextmanager

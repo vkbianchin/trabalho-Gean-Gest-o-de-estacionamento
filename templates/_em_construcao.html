@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ParkFlow</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body class="auth-body">
+  <main class="auth-wrap">
+    <section class="auth-card">
+      <p class="eyebrow">PARKFLOW</p>
+      <h1>{{ mensagem or "Página indisponível." }}</h1>
+      <p class="muted"><a href="/">Voltar ao início</a></p>
+    </section>
+  </main>
+</body>
+</html>

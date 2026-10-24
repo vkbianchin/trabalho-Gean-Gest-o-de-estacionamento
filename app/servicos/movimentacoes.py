@@ -57,12 +57,13 @@ def registrar_saida(valor_placa, uid, caixa_id=None, forma_pagamento=None, retro
     saida_em=saida_em or agora()
     conn=conexao()
     cur=conn.cursor(dictionary=True)
-    cur.execute("SELECT m.*,pl.cobranca,pr.valor AS valor_hora,pr.valor_diaria,c.tolerancia_minutos,c.arredondamento,c.fracao_minutos FROM movimentacoes m JOIN planos pl ON pl.id=m.plano_id JOIN precos pr ON pr.plano_id=m.plano_id AND pr.tipo_veiculo_id=m.tipo_veiculo_id JOIN configuracoes c ON c.id=1 WHERE m.placa=%s AND m.aberta=1", (p,))
+    cur.execute("SELECT m.*,pl.cobranca,pr.valor AS valor_hora,pr.valor_diaria,c.tolerancia_minutos,c.arredondamento,c.fracao_minutos FROM movimentacoes m JOIN planos pl ON pl.id=m.plano_id LEFT JOIN precos pr ON pr.plano_id=m.plano_id AND pr.tipo_veiculo_id=m.tipo_veiculo_id JOIN configuracoes c ON c.id=1 WHERE m.placa=%s AND m.aberta=1", (p,))
     m=cur.fetchone(); cur.close()
     if not m: raise ErroNegocio("Não existe entrada aberta para esta placa.",404)
     if saida_em < m["entrada_em"]: raise ErroNegocio("A saída não pode ser anterior à entrada.")
     if m["cobranca"]=="mensal": valor=Decimal("0.00")
     else:
+        if m["valor_hora"] is None: raise ErroNegocio("Não há preço cadastrado para este plano e tipo de veículo. Cadastre em Catálogos > Preços.")
         valor=calcular_cobranca(m["entrada_em"],saida_em,m["valor_hora"],m["tolerancia_minutos"],m["arredondamento"],m["fracao_minutos"],m["valor_diaria"])
         if valor > 0:
             if not caixa_id or not forma_pagamento: raise ErroNegocio("Informe o caixa aberto e a forma de pagamento.")

@@ -27,8 +27,12 @@
   function table(cols,rows,empty="Nenhum registro encontrado."){if(!rows?.length)return `<div class="empty-row">${esc(empty)}</div>`;return `<div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th>${esc(c.label)}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${c.render?c.render(r[c.key],r):esc(r[c.key])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;}
   function stat(label,value,icon,note){return `<article class="stat-card"><div class="stat-top"><span>${esc(label)}</span><span class="stat-icon">${icon}</span></div><div class="stat-number">${esc(value)}</div><div class="stat-note">${esc(note)}</div></article>`;}
   function panel(title,subtitle,body,right=""){return `<section class="panel"><div class="panel-heading"><div><h2>${title}</h2>${subtitle?`<p>${subtitle}</p>`:""}</div>${right}</div>${body}</section>`;}
-  function modal(title,body){const root=$("#modal-root");root.innerHTML=`<div class="modal-backdrop" data-backdrop><section class="modal" role="dialog" aria-modal="true"><div class="modal-header"><h2>${esc(title)}</h2><button type="button" class="modal-close" data-close>×</button></div><div class="modal-body">${body}</div></section></div>`;root.querySelector("[data-backdrop]").addEventListener("click",e=>{if(e.target.matches("[data-backdrop]")||e.target.closest("[data-close]"))root.innerHTML="";});root.querySelector(".modal").addEventListener("click",e=>e.stopPropagation());}
-  function catchForm(form,fn){form?.addEventListener("submit",async e=>{e.preventDefault();const b=form.querySelector('[type="submit"]');if(b)b.disabled=true;try{await fn(e); }catch(err){toast(err.message||"Erro inesperado.","error");}finally{if(b)b.disabled=false;}});}
+  function cpfValido(valor){const cpf=String(valor||"").replace(/\D/g,"");if(cpf.length!==11||/^(\d)\1{10}$/.test(cpf))return false;let soma=0;for(let i=0;i<9;i++)soma+=Number(cpf[i])*(10-i);let dig=(soma*10)%11;if(dig===10)dig=0;if(dig!==Number(cpf[9]))return false;soma=0;for(let i=0;i<10;i++)soma+=Number(cpf[i])*(11-i);dig=(soma*10)%11;if(dig===10)dig=0;return dig===Number(cpf[10]);}
+  function validationMessage(el){const v=el.value.trim(),name=(el.name||"").toLowerCase(),label=el.closest("label")?.childNodes?.[0]?.textContent?.trim()||el.getAttribute("aria-label")||name||"Este campo";if(!v){return el.required?`${label}: este campo é obrigatório.`:"";}if(name==="cpf"){const digits=v.replace(/\D/g,"");if(digits.length<11)return "Digite os 11 números do CPF.";if(!cpfValido(v))return "CPF inválido. Confira os números digitados.";}if(name==="cep"&&v.replace(/\D/g,"").length!==8)return "CEP deve conter 8 números.";if(name==="telefone"){const n=v.replace(/\D/g,"");if(n.length<10||n.length>11)return "Telefone deve ter DDD e 10 ou 11 números.";}if(el.type==="email"&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))return "Digite um e-mail válido.";if(name==="placa"&&!/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(v.replace(/[^A-Z0-9]/g,"").toUpperCase()))return "Placa inválida. Use ABC1234 ou ABC1D23.";if(el.type==="number"){const n=Number(v),min=el.min!==""?Number(el.min):null,max=el.max!==""?Number(el.max):null;if(!Number.isFinite(n))return "Digite um número válido.";if(min!==null&&n<min)return `O valor mínimo é ${min}.`;if(max!==null&&n>max)return `O valor máximo é ${max}.`;}if(el.minLength>0&&v.length<el.minLength)return `Digite pelo menos ${el.minLength} caracteres.`;if(el.maxLength>0&&v.length>el.maxLength)return `Digite no máximo ${el.maxLength} caracteres.`;return "";}
+  function validateField(el,show=true){if(!el||el.disabled||["submit","button","reset","hidden"].includes(el.type))return true;const msg=validationMessage(el);el.setAttribute("aria-invalid",msg?"true":"false");let hint=el.parentElement?.querySelector(`.live-field-error[data-for="${CSS.escape(el.name||el.id||"")}"]`);if(!hint&&el.parentElement){hint=document.createElement("small");hint.className="live-field-error";hint.dataset.for=el.name||el.id||"";hint.setAttribute("aria-live","polite");el.insertAdjacentElement("afterend",hint);}if(hint){hint.textContent=show?msg:"";hint.hidden=!show||!msg;}return !msg;}
+  function enableLiveValidation(form){if(!form||form.dataset.liveValidation==="true")return;form.dataset.liveValidation="true";const touched=new WeakSet();form.querySelectorAll("input,select,textarea").forEach(el=>{el.addEventListener("input",()=>{touched.add(el);if(el.name==="cpf"){let n=el.value.replace(/\D/g,"").slice(0,11);el.value=n.replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d{1,2})$/,"$1-$2");}else if(el.name==="cep"){let n=el.value.replace(/\D/g,"").slice(0,8);el.value=n.length>5?n.slice(0,5)+"-"+n.slice(5):n;}else if(el.name==="telefone"){let n=el.value.replace(/\D/g,"").slice(0,11);if(n.length>10)el.value=n.replace(/(\d{2})(\d{5})(\d{4})/,"($1) $2-$3");else if(n.length>6)el.value=n.replace(/(\d{2})(\d{4})(\d{0,4})/,"($1) $2-$3");else if(n.length>2)el.value=n.replace(/(\d{2})(\d+)/,"($1) $2");else el.value=n;}else if(el.name==="placa")el.value=el.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,7);validateField(el,true);});el.addEventListener("blur",()=>{touched.add(el);validateField(el,true);});});form.addEventListener("submit",e=>{let first=null;form.querySelectorAll("input,select,textarea").forEach(el=>{if(!validateField(el,true)&&!first)first=el;});if(first){e.preventDefault();e.stopImmediatePropagation();first.focus();}} ,true);}
+  function modal(title,body){const root=$("#modal-root");root.innerHTML=`<div class="modal-backdrop" data-backdrop><section class="modal" role="dialog" aria-modal="true"><div class="modal-header"><h2>${esc(title)}</h2><button type="button" class="modal-close" data-close>×</button></div><div class="modal-body">${body}</div></section></div>`;root.querySelectorAll("form").forEach(enableLiveValidation);root.querySelector("[data-backdrop]").addEventListener("click",e=>{if(e.target.matches("[data-backdrop]")||e.target.closest("[data-close]"))root.innerHTML="";});root.querySelector(".modal").addEventListener("click",e=>e.stopPropagation());}
+  function catchForm(form,fn){if(!form)return;enableLiveValidation(form);form.addEventListener("submit",async e=>{e.preventDefault();const b=form.querySelector('[type="submit"]');if(b)b.disabled=true;try{await fn(e); }catch(err){toast(err.message||"Erro inesperado.","error");}finally{if(b)b.disabled=false;}});}
   function wireSearch(input,root){input?.addEventListener("input",()=>{const q=input.value.toLocaleLowerCase("pt-BR");root?.querySelectorAll("tbody tr").forEach(tr=>tr.hidden=!tr.textContent.toLocaleLowerCase("pt-BR").includes(q));root?.querySelectorAll(".vacancy").forEach(el=>el.hidden=!el.dataset.search.includes(q));});}
   function go(url){location.href=url;}
   async function loadUser(){
@@ -68,9 +72,10 @@
     if(!caixa.aberto)toast("O caixa está fechado. Abra-o antes de receber pagamentos.","error");
   }
   async function movements(){
-    const root=$("#app-content");const [movs,tipos,vagas,caixa]=await Promise.all([api("/api/movimentacoes"),api("/api/catalogos/tipos_veiculo"),api("/api/vagas"),api("/api/caixa")]);
+    const root=$("#app-content");const [movs,tipos,vagas,caixa]=await Promise.all([api("/api/movimentacoes"),api("/api/catalogos/tipos_veiculo"),api("/api/vagas"),api("/api/caixa")]);let precoCache=null;
     const open=movs.filter(m=>m.aberta===true||Number(m.aberta)===1||(!m.saida_em&&m.entrada_em));
-    root.innerHTML=`<div class="notice notice-info">Digite a placa para consultar o veículo. O backend deve decidir se a operação é entrada ou saída e validar as regras de mensalista/horista.</div><div class="columns-2"><div>${panel("Registrar entrada","Use para veículos ainda não registrados no estacionamento",`<form id="entry-form" class="form-grid"><label class="span-2">Placa do veículo<input name="placa" required maxlength="8" placeholder="ABC1D23" autocapitalize="characters"></label>${select("Tipo de veículo","tipo_veiculo_id",tipos)}<label>Vaga (opcional)<select name="vaga_id"><option value="">Escolher automaticamente</option>${vagas.filter(v=>!Number(v.ocupada)).map(v=>`<option value="${esc(v.id??v.vaga_id)}">${esc(v.numero??v.vaga_numero)} · ${esc(v.tipo_veiculo)} · ${esc(v.plano)}</option>`).join("")}</select></label><div class="form-actions span-2"><button class="btn btn-primary">Registrar entrada →</button></div></form>`)}</div><div>${panel("Registrar saída","Horistas precisam de caixa aberto para pagar",`<form id="exit-form" class="form-stack">${field("Placa do veículo","placa","text",true,"ABC1D23",'maxlength="8" autocapitalize="characters"')}<label>Forma de pagamento<select name="forma_pagamento"><option value="dinheiro">Dinheiro</option><option value="pix">Pix</option><option value="cartao_debito">Cartão de débito</option><option value="cartao_credito">Cartão de crédito</option></select></label><div class="notice ${caixa.aberto?"notice-success":"notice-warning"}">${caixa.aberto?"Caixa aberto. Recebimentos liberados.":"Caixa fechado. Abra o caixa antes de receber."}</div><button class="btn btn-primary">Calcular e registrar saída</button></form>`)}</div></div>${panel("Veículos no estacionamento",`${open.length} movimentação(ões) em aberto`,table([{key:"placa",label:"Placa"},{key:"vaga_numero",label:"Vaga"},{key:"entrada_em",label:"Entrada",render:dt},{key:"plano",label:"Plano"}],open,"Nenhum veículo no local."))}${panel("Histórico recente","Movimentações mais recentes",table([{key:"placa",label:"Placa"},{key:"vaga_numero",label:"Vaga"},{key:"entrada_em",label:"Entrada",render:dt},{key:"saida_em",label:"Saída",render:dt},{key:"valor_cobrado",label:"Valor",render:money}],movs.slice(0,100)))}`;
+    root.innerHTML=`<div class="notice notice-info">Digite a placa para consultar o veículo. O backend deve decidir se a operação é entrada ou saída e validar as regras de mensalista/horista.</div><div class="columns-2"><div>${panel("Registrar entrada","Use para veículos ainda não registrados no estacionamento",`<form id="entry-form" class="form-grid"><label class="span-2">Placa do veículo<input name="placa" required maxlength="8" placeholder="ABC1D23" autocapitalize="characters"></label>${select("Tipo de veículo","tipo_veiculo_id",tipos)}<label>Vaga (opcional)<select name="vaga_id"><option value="">Escolher automaticamente</option>${vagas.filter(v=>!Number(v.ocupada)).map(v=>`<option value="${esc(v.id??v.vaga_id)}">${esc(v.numero??v.vaga_numero)} · ${esc(v.tipo_veiculo)} · ${esc(v.plano)}</option>`).join("")}</select></label><div id="price-warning" class="notice notice-warning span-2" hidden></div><div class="form-actions span-2"><button class="btn btn-primary">Registrar entrada →</button></div></form>`)}</div><div>${panel("Registrar saída","Horistas precisam de caixa aberto para pagar",`<form id="exit-form" class="form-stack">${field("Placa do veículo","placa","text",true,"ABC1D23",'maxlength="8" autocapitalize="characters"')}<label>Forma de pagamento<select name="forma_pagamento"><option value="dinheiro">Dinheiro</option><option value="pix">Pix</option><option value="cartao_debito">Cartão de débito</option><option value="cartao_credito">Cartão de crédito</option></select></label><div class="notice ${caixa.aberto?"notice-success":"notice-warning"}">${caixa.aberto?"Caixa aberto. Recebimentos liberados.":"Caixa fechado. Abra o caixa antes de receber."}</div><button class="btn btn-primary">Calcular e registrar saída</button></form>`)}</div></div>${panel("Veículos no estacionamento",`${open.length} movimentação(ões) em aberto`,table([{key:"placa",label:"Placa"},{key:"vaga_numero",label:"Vaga"},{key:"entrada_em",label:"Entrada",render:dt},{key:"plano",label:"Plano"}],open,"Nenhum veículo no local."))}${panel("Histórico recente","Movimentações mais recentes",table([{key:"placa",label:"Placa"},{key:"vaga_numero",label:"Vaga"},{key:"entrada_em",label:"Entrada",render:dt},{key:"saida_em",label:"Saída",render:dt},{key:"valor_cobrado",label:"Valor",render:money}],movs.slice(0,100)))}`;
+    $('#entry-form [name="tipo_veiculo_id"]').addEventListener("change",async e=>{const box=$("#price-warning");const tid=Number(e.target.value);if(!tid){box.hidden=true;return;}try{if(!precoCache)precoCache=await Promise.all([api("/api/precos"),api("/api/catalogos/planos")]);}catch{box.hidden=true;return;}const [precos,planos]=precoCache;const horista=planos.find(p=>p.cobranca==="hora");if(!horista){box.hidden=true;return;}const tem=precos.some(x=>Number(x.plano_id)===Number(horista.id)&&Number(x.tipo_veiculo_id)===tid);const nome=e.target.options[e.target.selectedIndex].text;box.textContent=tem?"":`Não há preço do plano ${horista.nome} cadastrado para ${nome}. Se este veículo não for mensalista, a saída não poderá ser calculada. Cadastre em Catálogos > Preços.`;box.hidden=tem;});
     catchForm($("#entry-form"),async e=>{const d=fd(e.currentTarget);d.placa=d.placa.toUpperCase().replace(/[^A-Z0-9]/g,"");d.tipo_veiculo_id=Number(d.tipo_veiculo_id);if(d.vaga_id)d.vaga_id=Number(d.vaga_id);else delete d.vaga_id;const r=await api("/api/entrada",{method:"POST",body:JSON.stringify(d)});toast(`Entrada registrada: ${r.placa||d.placa}${r.vaga?` · vaga ${r.vaga}`:""}`);await movements();});
     catchForm($("#exit-form"),async e=>{const d=fd(e.currentTarget);d.placa=d.placa.toUpperCase().replace(/[^A-Z0-9]/g,"");const r=await api("/api/saida",{method:"POST",body:JSON.stringify(d)});toast(`Saída registrada. Valor: ${money(r.valor)}`);await movements();});
   }
@@ -88,17 +93,32 @@
     catchForm($("#client-form"),async e=>{await api("/api/clientes",{method:"POST",body:JSON.stringify(fd(e.currentTarget))});$("#modal-root").innerHTML="";toast("Cliente cadastrado.");await clients();});};
   }
   async function vehicles(){
-    const [rows,clientes,tipos,modelos,cores]=await Promise.all([api("/api/veiculos"),api("/api/clientes"),api("/api/catalogos/tipos_veiculo"),api("/api/catalogos/modelos"),api("/api/catalogos/cores")]);
+    const [rows,clientes,tipos,modelos,cores,marcas]=await Promise.all([api("/api/veiculos"),api("/api/clientes"),api("/api/catalogos/tipos_veiculo"),api("/api/catalogos/modelos"),api("/api/catalogos/cores"),api("/api/catalogos/marcas")]);
     $("#app-content").innerHTML=panel("Veículos cadastrados","Cada veículo mensalista deve estar vinculado a um cliente",`<div class="toolbar"><label class="field search"><input id="search-table" placeholder="Buscar placa, cliente ou modelo..."></label><button class="btn btn-primary" id="new-vehicle">＋ Novo veículo</button></div><div style="height:15px"></div><div id="table-results">${table([{key:"placa",label:"Placa"},{key:"cliente_nome",label:"Cliente"},{key:"tipo_veiculo",label:"Tipo"},{key:"modelo",label:"Modelo"},{key:"cor",label:"Cor"},{key:"ativo",label:"Status",render:badge}],rows)}</div>`);
     wireSearch($("#search-table"),$("#table-results"));
-    $("#new-vehicle").onclick=()=>{modal("Cadastrar veículo",`<form id="vehicle-form" class="form-grid">${select("Cliente","cliente_id",clientes.map(c=>({value:c.id??c.cliente_id,label:`${c.nome} · ${c.cpf||""}`})))}${select("Tipo de veículo","tipo_veiculo_id",tipos)}${field("Placa","placa","text",true,"ABC1D23",'maxlength="8" autocapitalize="characters"')}${select("Modelo (opcional)","modelo_id",modelos.map(m=>({value:m.id??m.modelo_id,label:m.nome??m.modelo_nome})),false)}${select("Cor (opcional)","cor_id",cores.map(c=>({value:c.id??c.cor_id,label:c.nome??c.cor_nome})),false)}<div class="form-actions span-2"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Salvar veículo</button></div></form>`);
-    catchForm($("#vehicle-form"),async e=>{const d=fd(e.currentTarget);d.placa=d.placa.toUpperCase().replace(/[^A-Z0-9]/g,"");["cliente_id","tipo_veiculo_id","modelo_id","cor_id"].forEach(k=>{if(d[k])d[k]=Number(d[k]);else delete d[k];});await api("/api/veiculos",{method:"POST",body:JSON.stringify(d)});$("#modal-root").innerHTML="";toast("Veículo cadastrado.");await vehicles();});};
+    $("#new-vehicle").onclick=()=>{modal("Cadastrar veículo",`<form id="vehicle-form" class="form-grid">${select("Cliente","cliente_id",clientes.map(c=>({value:c.id??c.cliente_id,label:`${c.nome} · ${c.cpf||""}`})))}${select("Tipo de veículo","tipo_veiculo_id",tipos)}${field("Placa","placa","text",true,"ABC1D23",'maxlength="8" autocapitalize="characters"')}${select("Marca (opcional)","marca_id",marcas,false)}${select("Modelo (opcional)","modelo_id",modelos.map(m=>({value:m.id??m.modelo_id,label:m.nome??m.modelo_nome})),false)}${select("Cor (opcional)","cor_id",cores.map(c=>({value:c.id??c.cor_id,label:c.nome??c.cor_nome})),false)}<div class="span-2"><button type="button" class="btn btn-secondary btn-sm" data-quick="marcas">＋ Nova marca</button> <button type="button" class="btn btn-secondary btn-sm" data-quick="modelos">＋ Novo modelo</button> <button type="button" class="btn btn-secondary btn-sm" data-quick="cores">＋ Nova cor</button></div><div class="span-2" id="quick-row" style="display:none;gap:8px;align-items:center"><input id="quick-name" maxlength="60" placeholder="Nome"><button type="button" class="btn btn-primary btn-sm" id="quick-save">Salvar</button><button type="button" class="btn btn-secondary btn-sm" id="quick-cancel">Cancelar</button></div><div class="form-actions span-2"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Salvar veículo</button></div></form>`);
+    {const marSel=$('#vehicle-form [name="marca_id"]'),modSel=$('#vehicle-form [name="modelo_id"]'),corSel=$('#vehicle-form [name="cor_id"]');let quickKey=null;const row=$("#quick-row"),nameEl=$("#quick-name");
+    const fillModelos=keep=>{const mid=marSel.value;const temMarca=modelos.some(m=>m.marca_id!=null);const lista=mid&&temMarca?modelos.filter(m=>String(m.marca_id)===mid):modelos;modSel.innerHTML='<option value="">Selecione...</option>'+lista.map(m=>`<option value="${esc(m.id)}">${esc(m.nome)}</option>`).join("");if(keep)modSel.value=keep;};
+    marSel.addEventListener("change",()=>fillModelos());
+    const dicas={marcas:"Nome da marca",modelos:"Nome do modelo (da marca escolhida acima)",cores:"Nome da cor"};
+    $$("[data-quick]").forEach(b=>b.addEventListener("click",()=>{quickKey=b.dataset.quick;row.style.display="flex";nameEl.placeholder=dicas[quickKey];nameEl.value="";nameEl.focus();}));
+    $("#quick-cancel").onclick=()=>{row.style.display="none";quickKey=null;};
+    const salvarRapido=async()=>{try{const nome=nameEl.value.trim();if(!quickKey||!nome){toast("Digite o nome.","error");return;}const body={nome};if(quickKey==="modelos"){if(!marSel.value){toast("Escolha a marca antes de cadastrar o modelo.","error");return;}body.marca_id=Number(marSel.value);}
+      const r=await api(`/api/catalogos/${quickKey}`,{method:"POST",body:JSON.stringify(body)});
+      if(quickKey==="marcas"){marcas.push({id:r.id,nome});const o=document.createElement("option");o.value=r.id;o.textContent=nome;marSel.append(o);marSel.value=r.id;fillModelos();}
+      else if(quickKey==="modelos"){modelos.push({id:r.id,nome,marca_id:body.marca_id});fillModelos(String(r.id));}
+      else{const o=document.createElement("option");o.value=r.id;o.textContent=nome;corSel.append(o);corSel.value=r.id;}
+      row.style.display="none";quickKey=null;toast("Cadastrado com sucesso.");}catch(err){toast(err.message||"Erro inesperado.","error");}};
+    $("#quick-save").onclick=salvarRapido;nameEl.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();salvarRapido();}});}
+    catchForm($("#vehicle-form"),async e=>{const d=fd(e.currentTarget);delete d.marca_id;d.placa=d.placa.toUpperCase().replace(/[^A-Z0-9]/g,"");["cliente_id","tipo_veiculo_id","modelo_id","cor_id"].forEach(k=>{if(d[k])d[k]=Number(d[k]);else delete d[k];});await api("/api/veiculos",{method:"POST",body:JSON.stringify(d)});$("#modal-root").innerHTML="";toast("Veículo cadastrado.");await vehicles();});};
   }
   async function vacancies(){
-    const rows=await api("/api/vagas");const occ=rows.filter(v=>Number(v.ocupada)===1||v.ocupada===true).length;
-    $("#app-content").innerHTML=`<div class="stats-grid">${stat("Total de vagas",rows.length,"▦","Vagas cadastradas")}${stat("Ocupadas",occ,"▰","Em uso agora")}${stat("Livres",rows.length-occ,"✓","Disponíveis")}${stat("Ocupação",rows.length?Math.round(occ/rows.length*100)+"%":"0%","◔","Percentual de ocupação")}</div>${panel("Mapa de vagas","A ocupação é calculada pelas movimentações abertas.",`<div class="toolbar"><label class="field search"><input id="search-table" placeholder="Buscar número, tipo ou plano..."></label><select class="field" id="vacancy-filter"><option value="">Todas as vagas</option><option value="livre">Somente livres</option><option value="ocupada">Somente ocupadas</option></select></div><div style="height:15px"></div><div class="vacancy-grid" id="vacancy-grid">${rows.map(v=>{const occupied=Number(v.ocupada)===1||v.ocupada===true;const num=v.numero??v.vaga_numero??v.id;return `<article class="vacancy ${occupied?"occupied":"free"}" data-state="${occupied?"ocupada":"livre"}" data-search="${esc(`${num} ${v.tipo_veiculo||""} ${v.plano||""}`.toLocaleLowerCase("pt-BR"))}"><span class="vacancy-icon">▰</span><strong>${esc(num)}</strong><small>${esc(v.tipo_veiculo)}</small><small>${esc(v.plano)}</small>${badge(occupied?"Ocupada":"Livre")}</article>`}).join("")||'<div class="empty-row">Nenhuma vaga cadastrada.</div>'}</div>`)}`;
+    const [rows,tipos,planos]=await Promise.all([api("/api/vagas"),api("/api/catalogos/tipos_veiculo"),api("/api/catalogos/planos")]);const occ=rows.filter(v=>Number(v.ocupada)===1||v.ocupada===true).length;
+    $("#app-content").innerHTML=`<div class="stats-grid">${stat("Total de vagas",rows.length,"▦","Vagas cadastradas")}${stat("Ocupadas",occ,"▰","Em uso agora")}${stat("Livres",rows.length-occ,"✓","Disponíveis")}${stat("Ocupação",rows.length?Math.round(occ/rows.length*100)+"%":"0%","◔","Percentual de ocupação")}</div>${panel("Mapa de vagas","A ocupação é calculada pelas movimentações abertas.",`<div class="toolbar"><label class="field search"><input id="search-table" placeholder="Buscar número, tipo ou plano..."></label><select class="field" id="vacancy-filter"><option value="">Todas as vagas</option><option value="livre">Somente livres</option><option value="ocupada">Somente ocupadas</option></select><button class="btn btn-primary" id="new-vacancy">＋ Nova vaga</button></div><div style="height:15px"></div><div class="vacancy-grid" id="vacancy-grid">${rows.map(v=>{const occupied=Number(v.ocupada)===1||v.ocupada===true;const num=v.numero??v.vaga_numero??v.id;return `<article class="vacancy ${occupied?"occupied":"free"}" data-state="${occupied?"ocupada":"livre"}" data-search="${esc(`${num} ${v.tipo_veiculo||""} ${v.plano||""}`.toLocaleLowerCase("pt-BR"))}"><span class="vacancy-icon">▰</span><strong>${esc(num)}</strong><small>${esc(v.tipo_veiculo)}</small><small>${esc(v.plano)}</small>${badge(occupied?"Ocupada":"Livre")}</article>`}).join("")||'<div class="empty-row">Nenhuma vaga cadastrada.</div>'}</div>`)}`;
     const filter=()=>{$$(".vacancy").forEach(el=>el.hidden=!(el.dataset.search.includes($("#search-table").value.toLocaleLowerCase("pt-BR"))&&(!$("#vacancy-filter").value||el.dataset.state===$("#vacancy-filter").value)));};
     $("#search-table").addEventListener("input",filter);$("#vacancy-filter").addEventListener("change",filter);
+    $("#new-vacancy").onclick=()=>{modal("Cadastrar vaga",`<form id="vacancy-form" class="form-grid">${field("Número da vaga","numero","number",true,"Ex.: 1",'min="1" max="9999"')}${select("Tipo de veículo","tipo_veiculo_id",tipos)}${select("Plano","plano_id",planos.filter(p=>Number(p.ativo)===1))}<div class="form-actions span-2"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Salvar vaga</button></div></form>`);
+    catchForm($("#vacancy-form"),async e=>{const d=fd(e.currentTarget);["numero","tipo_veiculo_id","plano_id"].forEach(k=>d[k]=Number(d[k]));await api("/api/vagas",{method:"POST",body:JSON.stringify(d)});$("#modal-root").innerHTML="";toast("Vaga cadastrada.");await vacancies();});};
   }
   async function contracts(){
     const [rows,clientes,veiculos]=await Promise.all([api("/api/contratos"),api("/api/clientes"),api("/api/veiculos")]);
@@ -117,8 +137,18 @@
   }
   async function catalogs(){
     const keys=[["tipos_veiculo","Tipos de veículo"],["marcas","Marcas"],["modelos","Modelos"],["cores","Cores"],["planos","Planos"]];
-    const data=await Promise.all(keys.map(async([key,label])=>({label,rows:await api(`/api/catalogos/${key}`)})));
-    $("#app-content").innerHTML=`<div class="notice notice-info">Catálogos disponíveis para consulta. A criação e edição dependem de rotas correspondentes no backend.</div><div class="catalog-grid">${data.map(x=>`<section class="panel"><div class="panel-heading"><div><h2>${esc(x.label)}</h2><p>${x.rows.length} registro(s)</p></div></div>${table([{key:"id",label:"Código"},{key:"nome",label:"Nome"},{key:"ativo",label:"Status",render:v=>v===undefined?"—":badge(v)}],x.rows)}</section>`).join("")}</div>`;
+    const [data,precos]=await Promise.all([Promise.all(keys.map(async([key,label])=>({key,label,rows:await api(`/api/catalogos/${key}`)}))),api("/api/precos")]);
+    const tiposCat=data[0].rows,planosCat=data[4].rows.filter(p=>Number(p.ativo)===1);const marcasCat=data[1].rows;const marcaNome=id=>marcasCat.find(m=>String(m.id)===String(id))?.nome||"—";const isAdmin=user?.nivel_acesso==="administrador";
+    const precoPanel=panel("Preços","Valor cobrado por plano e tipo de veículo. A saída do horista depende do preço cadastrado.",`<div class="toolbar"><span></span><button class="btn btn-primary" id="new-price">＋ Novo preço</button></div><div style="height:15px"></div>${table([{key:"plano",label:"Plano"},{key:"tipo_veiculo",label:"Tipo de veículo"},{key:"valor",label:"Valor",render:money},{key:"valor_diaria",label:"Diária",render:v=>v==null?"—":money(v)},{key:"acao",label:"Ação",render:(v,r)=>`<button class="btn btn-secondary btn-sm" data-edit-price="${esc(r.id)}">Editar</button>`}],precos,"Nenhum preço cadastrado.")}`);
+    $("#app-content").innerHTML=`<div class="notice notice-info">Planos, tipos, marcas, modelos e cores estão disponíveis para consulta. Os preços podem ser cadastrados e editados abaixo.</div>${precoPanel}<div style="height:15px"></div><div class="catalog-grid">${data.map(x=>`<section class="panel"><div class="panel-heading"><div><h2>${esc(x.label)}</h2><p>${x.rows.length} registro(s)</p></div>${x.key==="planos"||(x.key==="tipos_veiculo"&&!isAdmin)?"":`<button class="btn btn-primary btn-sm" data-new-cat="${x.key}">＋ Novo</button>`}</div>${table([{key:"id",label:"Código"},{key:"nome",label:"Nome"},...(x.key==="modelos"&&x.rows.some(r=>r.tipo_veiculo_id!=null)?[{key:"tipo_veiculo_id",label:"Tipo de veículo",render:v=>esc(tiposCat.find(t=>String(t.id)===String(v))?.nome||"—")}]:[]),...(x.key==="modelos"&&x.rows.some(r=>r.marca_id!=null)?[{key:"marca_id",label:"Marca",render:v=>esc(marcaNome(v))}]:[]),{key:"ativo",label:"Status",render:v=>v===undefined?"—":badge(v)}],x.rows)}</section>`).join("")}</div>`;
+    $("#new-price").onclick=()=>{modal("Cadastrar preço",`<form id="price-form" class="form-grid">${select("Plano","plano_id",planosCat)}${select("Tipo de veículo","tipo_veiculo_id",tiposCat)}${moneyField("Valor (R$)","valor",true)}${moneyField("Diária (R$), opcional","valor_diaria",false)}<div class="form-actions span-2"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Salvar preço</button></div></form>`);
+    catchForm($("#price-form"),async e=>{const d=fd(e.currentTarget);["plano_id","tipo_veiculo_id"].forEach(k=>d[k]=Number(d[k]));if(d.valor_diaria==="")delete d.valor_diaria;await api("/api/precos",{method:"POST",body:JSON.stringify(d)});$("#modal-root").innerHTML="";toast("Preço cadastrado.");await catalogs();});};
+    $$("[data-edit-price]").forEach(b=>b.addEventListener("click",()=>{const r=precos.find(x=>String(x.id)===b.dataset.editPrice);modal(`Editar preço · ${r.plano} · ${r.tipo_veiculo}`,`<form id="price-edit-form" class="form-grid">${moneyField("Valor (R$)","valor",true,r.valor)}${moneyField("Diária (R$), opcional","valor_diaria",false,r.valor_diaria??"")}<div class="form-actions span-2"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Salvar alterações</button></div></form>`);
+    catchForm($("#price-edit-form"),async e=>{const d=fd(e.currentTarget);if(d.valor_diaria==="")delete d.valor_diaria;await api(`/api/precos/${r.id}`,{method:"PUT",body:JSON.stringify(d)});$("#modal-root").innerHTML="";toast("Preço atualizado.");await catalogs();});}));
+    const nomesCat={tipos_veiculo:"tipo de veículo",marcas:"marca",modelos:"modelo",cores:"cor"};
+    $$("[data-new-cat]").forEach(b=>b.addEventListener("click",()=>{const key=b.dataset.newCat;const usaMarca=key==="modelos"&&data[2].rows.some(r=>r.marca_id!=null);
+      modal(`Cadastrar ${nomesCat[key]}`,`<form id="cat-form" class="form-stack">${key==="modelos"?select("Tipo de veículo","tipo_veiculo_id",tiposCat):""}${key==="modelos"&&(usaMarca||!data[2].rows.length)?select("Marca","marca_id",marcasCat):""}${field("Nome","nome","text",true,"",'maxlength="60"')}<div class="form-actions"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Salvar</button></div></form>`);
+      catchForm($("#cat-form"),async e=>{const d=fd(e.currentTarget);if(d.tipo_veiculo_id)d.tipo_veiculo_id=Number(d.tipo_veiculo_id);else delete d.tipo_veiculo_id;if(d.marca_id)d.marca_id=Number(d.marca_id);else delete d.marca_id;await api(`/api/catalogos/${key}`,{method:"POST",body:JSON.stringify(d)});$("#modal-root").innerHTML="";toast("Cadastrado com sucesso.");await catalogs();});}));
   }
   async function settings(){
     const c=await api("/api/configuracoes");
@@ -175,3 +205,108 @@
   }
   document.addEventListener("DOMContentLoaded",boot);
 })();
+
+function modal(title, body) {
+  const root = document.querySelector("#modal-root");
+
+  if (!root) {
+    console.error('Elemento "#modal-root" não encontrado.');
+    return;
+  }
+
+  // Remove o listener do modal anterior, se existir.
+  if (root._modalEscapeHandler) {
+    document.removeEventListener(
+      "keydown",
+      root._modalEscapeHandler
+    );
+
+    root._modalEscapeHandler = null;
+  }
+
+  // Cria a janela do modal.
+  root.innerHTML = `
+    <div class="modal-backdrop" data-backdrop>
+      <section
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="${esc(title)}"
+      >
+        <div class="modal-header">
+          <h2>${esc(title)}</h2>
+
+          <button
+            type="button"
+            class="modal-close"
+            data-close
+            aria-label="Fechar janela"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="modal-body">
+          ${body}
+        </div>
+      </section>
+    </div>
+  `;
+
+  // Ativa a validação dos formulários.
+  root.querySelectorAll("form").forEach(form => {
+    enableLiveValidation(form);
+  });
+
+  const backdrop = root.querySelector("[data-backdrop]");
+  const modalWindow = root.querySelector(".modal");
+
+  // Função central para fechar o modal.
+  function fecharModal() {
+    root.innerHTML = "";
+
+    if (root._modalEscapeHandler) {
+      document.removeEventListener(
+        "keydown",
+        root._modalEscapeHandler
+      );
+
+      root._modalEscapeHandler = null;
+    }
+  }
+
+  // Fecha ao clicar no X ou em qualquer botão com data-close.
+  root.querySelectorAll("[data-close]").forEach(botao => {
+    botao.addEventListener("click", event => {
+      event.preventDefault();
+      fecharModal();
+    });
+  });
+
+  // Fecha ao clicar fora da janela.
+  backdrop.addEventListener("click", event => {
+    if (event.target === backdrop) {
+      fecharModal();
+    }
+  });
+
+  // Impede que cliques dentro do modal fechem a janela.
+  modalWindow.addEventListener("click", event => {
+    event.stopPropagation();
+  });
+
+  // Fecha ao pressionar Esc.
+  root._modalEscapeHandler = event => {
+    if (
+      event.key === "Escape" &&
+      root.querySelector(".modal")
+    ) {
+      fecharModal();
+    }
+  };
+
+  document.addEventListener(
+    "keydown",
+    root._modalEscapeHandler
+  );
+}

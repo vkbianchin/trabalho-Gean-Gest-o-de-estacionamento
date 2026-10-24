@@ -15,3 +15,32 @@ body.text-large h2{font-size:19px}
 body.accent-verde{--blue:#28a879;--blue2:#16845d}
 body.accent-violeta{--blue:#9a78ed;--blue2:#7650d4}
 body.accent-dourado{--blue:#d6b56d;--blue2:#a9853d}
+
+/* Validação imediata dos formulários */
+.live-field-error{display:block;color:var(--red);font-size:11px;font-weight:500;line-height:1.35;margin-top:-2px}.live-field-error[hidden]{display:none!important}input[aria-invalid="true"],select[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--red)!important;box-shadow:0 0 0 2px #ef6b7520!important}input[aria-invalid="false"],select[aria-invalid="false"],textarea[aria-invalid="false"]{border-color:var(--green)}
+
+
+.live-field-error {
+  display: block;
+  margin-top: 5px;
+  color: #ef4444;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.live-field-error[hidden] {
+  display: none;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: #ef4444 !important;
+  outline-color: #ef4444;
+}
+
+input[aria-invalid="false"],
+select[aria-invalid="false"],
+textarea[aria-invalid="false"] {
+  border-color: #22a06b;
+}

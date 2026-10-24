@@ -4,7 +4,10 @@ from .erros import ErroNegocio
 from .validadores import senha as validar_senha
 
 def gerar_hash(senha):
-    validar_senha(senha)
+    try:
+        validar_senha(senha)
+    except ValueError as exc:
+        raise ErroNegocio(str(exc))
     return bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 def verificar_hash(senha, senha_hash):

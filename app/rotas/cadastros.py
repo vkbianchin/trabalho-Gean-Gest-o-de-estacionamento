@@ -29,6 +29,16 @@ def catalogo(nome):
     except ErroNegocio: raise
 
 
+@bp.post("/api/catalogos/tipos_veiculo")
+@exigir("precos")
+def criar_tipo_veiculo():
+    return jsonify({"id": cadastros.criar_item_catalogo("tipos_veiculo", request.get_json(force=True), exigir_login())}), 201
+
+@bp.post("/api/catalogos/<nome>")
+@exigir("cadastros")
+def criar_item_catalogo(nome):
+    return jsonify({"id": cadastros.criar_item_catalogo(nome, request.get_json(force=True), exigir_login())}), 201
+
 @bp.post("/api/planos")
 @exigir("precos")
 def criar_plano():

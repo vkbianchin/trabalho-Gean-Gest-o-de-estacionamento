@@ -187,3 +187,116 @@ def editar_preco(preco_id, d, uid):
         raise
     finally:
         cur.close()
+
+def criar_vaga(d, uid):
+    try:
+        numero = int(d.get("numero"))
+        tipo_id = int(d.get("tipo_veiculo_id"))
+        plano_id = int(d.get("plano_id"))
+    except (ValueError, TypeError):
+        raise ErroNegocio("Informe número, tipo de veículo e plano da vaga.")
+    if not 1 <= numero <= 9999:
+        raise ErroNegocio("O número da vaga deve estar entre 1 e 9999.")
+    conn = conexao()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT id FROM tipos_veiculo WHERE id = %s", (tipo_id,))
+        if not cur.fetchone():
+            raise ErroNegocio("Tipo de veículo não encontrado.", 404)
+        plano = _buscar_plano(cur, plano_id)
+        if not plano["ativo"]:
+            raise ErroNegocio("Não é possível criar vaga em um plano inativo.")
+        cur.execute("SELECT id FROM vagas WHERE numero = %s", (numero,))
+        if cur.fetchone():
+            raise ErroNegocio("Já existe uma vaga com esse número.", 409)
+        cur.execute("INSERT INTO vagas (numero, tipo_veiculo_id, plano_id, ativo, criado_por) VALUES (%s,%s,%s,1,%s)", (numero, tipo_id, plano_id, uid))
+        vid = cur.lastrowid
+        registrar_auditoria("vagas", vid, "criou", uid, None, {"numero": numero, "tipo_veiculo_id": tipo_id, "plano_id": plano_id, "ativo": 1})
+        conn.commit()
+    except IntegrityError:
+        conn.rollback()
+        raise ErroNegocio("Já existe uma vaga com esse número.", 409)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+    return vid
+
+
+CATALOGOS_EDITAVEIS = {"cores", "tipos_veiculo", "marcas", "modelos"}
+
+def criar_item_catalogo(tabela, d, uid):
+    if tabela not in CATALOGOS_EDITAVEIS:
+        raise ErroNegocio("Catálogo inválido.")
+
+    try:
+        nome = texto(d.get("nome"), "nome", 1, 60)
+    except (ValueError, TypeError) as exc:
+        raise ErroNegocio(str(exc))
+
+    conn = conexao()
+    cur = conn.cursor(dictionary=True)
+    try:
+        # Descobre as colunas existentes para manter compatibilidade com versões
+        # diferentes do esquema do banco.
+        cur.execute(f"SHOW COLUMNS FROM {tabela}")
+        definicoes = {r["Field"]: r for r in cur.fetchall()}
+        colunas = set(definicoes)
+        campos = {"nome": nome}
+        filtros = ["LOWER(nome) = LOWER(%s)"]
+        params = [nome]
+        auditoria = {"nome": nome}
+
+        if tabela == "modelos":
+            # O banco atual exige tipo_veiculo_id para cada modelo.
+            if "tipo_veiculo_id" in colunas:
+                valor_tipo = d.get("tipo_veiculo_id")
+                if not str(valor_tipo or "").isdigit():
+                    raise ErroNegocio("Escolha o tipo de veículo do modelo.")
+                tipo_id = int(valor_tipo)
+                cur.execute("SELECT id FROM tipos_veiculo WHERE id = %s", (tipo_id,))
+                if not cur.fetchone():
+                    raise ErroNegocio("Tipo de veículo não encontrado.", 404)
+                campos["tipo_veiculo_id"] = tipo_id
+                auditoria["tipo_veiculo_id"] = tipo_id
+                filtros.append("tipo_veiculo_id = %s")
+                params.append(tipo_id)
+
+            if "marca_id" in colunas:
+                valor_marca = d.get("marca_id")
+                if not str(valor_marca or "").isdigit():
+                    raise ErroNegocio("Escolha a marca do modelo.")
+                marca_id = int(valor_marca)
+                cur.execute("SELECT id FROM marcas WHERE id = %s", (marca_id,))
+                if not cur.fetchone():
+                    raise ErroNegocio("Marca não encontrada.", 404)
+                campos["marca_id"] = marca_id
+                auditoria["marca_id"] = marca_id
+                filtros.append("marca_id = %s")
+                params.append(marca_id)
+
+        cur.execute(f"SELECT id FROM {tabela} WHERE {' AND '.join(filtros)}", params)
+        if cur.fetchone():
+            raise ErroNegocio("Já existe um registro com esses dados.", 409)
+
+        if "criado_por" in colunas:
+            campos["criado_por"] = uid
+        if "ativo" in colunas:
+            campos["ativo"] = 1
+
+        nomes = ", ".join(campos)
+        marcadores = ", ".join(["%s"] * len(campos))
+        cur.execute(
+            f"INSERT INTO {tabela} ({nomes}) VALUES ({marcadores})",
+            list(campos.values()),
+        )
+        novo_id = cur.lastrowid
+        registrar_auditoria(tabela, novo_id, "criou", uid, None, auditoria)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+    return novo_id

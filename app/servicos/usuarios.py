@@ -46,9 +46,12 @@ def trocar_senha(usuario_id, atual, nova):
     session["permitir_troca_senha"] = False
 
 def criar_usuario(nome, email_usuario, login_usuario, senha_inicial, nivel, criador_id, provisoria=False):
-    nome = texto(nome, "nome", 2, 100)
-    email_usuario = email(email_usuario, True)
-    login_usuario = texto(login_usuario, "login", 3, 50).lower()
+    try:
+        nome = texto(nome, "nome", 2, 100)
+        email_usuario = email(email_usuario, True)
+        login_usuario = texto(login_usuario, "login", 3, 50).lower()
+    except ValueError as exc:
+        raise ErroNegocio(str(exc))
     if nivel not in ("administrador", "operador"):
         raise ErroNegocio("Nível de acesso inválido.")
     hash_senha = gerar_hash(senha_inicial)
