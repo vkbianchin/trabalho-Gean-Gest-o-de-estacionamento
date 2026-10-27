@@ -1,4 +1,5 @@
 from flask import jsonify, request, render_template
+from flask_wtf.csrf import CSRFError
 from mysql.connector import Error as MySQLError
 
 class ErroNegocio(Exception):
@@ -13,6 +14,13 @@ def registrar_erros(app):
         if request.path.startswith("/api/"):
             return jsonify({"erro": exc.mensagem}), exc.status
         return render_template("_em_construcao.html", mensagem=exc.mensagem), exc.status
+
+    @app.errorhandler(CSRFError)
+    def erro_csrf(_exc):
+        mensagem = "Sua sessão de segurança expirou. Atualize a página e tente novamente."
+        if request.path.startswith("/api/"):
+            return jsonify({"erro": mensagem, "codigo": "csrf"}), 400
+        return render_template("_em_construcao.html", mensagem=mensagem), 400
 
     @app.errorhandler(404)
     def nao_encontrado(_exc):

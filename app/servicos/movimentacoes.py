@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from mysql.connector.errors import IntegrityError
 from ..db import conexao, transacao
 from ..erros import ErroNegocio
 from ..validadores import placa
@@ -17,37 +18,59 @@ def consultar_placa(valor):
     cur.close()
     return {"placa":p,"movimentacao_aberta":aberta,"mensalista":mensalista}
 
+def escolher_vaga(vagas, ocupadas, vaga_id=None):
+    """vagas: vagas ativas compatíveis (tipo e plano), ordenadas por número.
+    ocupadas: conjunto de ids de vagas com movimentação aberta.
+    Sem vaga_id escolhe a livre de menor número; com vaga_id valida a vaga pedida."""
+    if vaga_id is not None:
+        escolhida = next((v for v in vagas if v["id"] == vaga_id), None)
+        if not escolhida: raise ErroNegocio("A vaga selecionada não existe ou não é compatível com este veículo.")
+        if escolhida["id"] in ocupadas: raise ErroNegocio("A vaga selecionada já está ocupada.")
+        return escolhida
+    livre = next((v for v in vagas if v["id"] not in ocupadas), None)
+    if not livre: raise ErroNegocio("Não há vaga livre disponível para esse veículo e plano.")
+    return livre
+
 def registrar_entrada(valor_placa, tipo_veiculo_id, uid, vaga_id=None, retroativa=False, entrada_em=None):
     try: p=placa(valor_placa)
     except ValueError as exc: raise ErroNegocio(str(exc))
+    try: tipo=int(tipo_veiculo_id)
+    except (TypeError, ValueError): raise ErroNegocio("Informe o tipo de veículo.")
+    try: vaga_id=int(vaga_id) if vaga_id not in (None, "") else None
+    except (TypeError, ValueError): raise ErroNegocio("Vaga inválida.")
     if retroativa and not entrada_em: raise ErroNegocio("Informe a data e hora da entrada retroativa.")
     entrada_em = entrada_em or agora()
-    cur = conexao().cursor(dictionary=True)
-    cur.execute("SELECT id, tipo_veiculo_id, plano_id, numero FROM vagas WHERE ativo=1 AND tipo_veiculo_id=%s AND (%s IS NULL OR id=%s) ORDER BY numero", (tipo_veiculo_id,vaga_id,vaga_id))
-    vagas=cur.fetchall()
-    cur.execute("SELECT id FROM movimentacoes WHERE placa=%s AND aberta=1", (p,))
-    ja_aberta=cur.fetchone()
-    cur.execute("SELECT v.id AS veiculo_id,v.tipo_veiculo_id,cm.id AS contrato_id FROM veiculos v JOIN contratos_mensalistas cm ON cm.veiculo_id=v.id AND cm.data_fim IS NULL WHERE v.placa=%s AND v.ativo=1", (p,))
-    mensalista=cur.fetchone()
-    cur.close()
-    if ja_aberta: raise ErroNegocio("Este veículo já está estacionado.")
-    if mensalista and mensalista["tipo_veiculo_id"] != int(tipo_veiculo_id): raise ErroNegocio("O tipo de veículo não corresponde ao cadastro do mensalista.")
-    # Mensalista só pode ocupar vaga do plano mensal; horista só vaga do plano por hora.
     conn=conexao()
     cur=conn.cursor(dictionary=True)
-    cur.execute("SELECT id FROM planos WHERE cobranca=%s", ("mensal" if mensalista else "hora",))
-    plano=cur.fetchone()
-    if not plano: cur.close(); raise ErroNegocio("Plano necessário não encontrado. Execute os dados iniciais.")
-    vagas=[v for v in vagas if v["plano_id"]==plano["id"]]
-    escolhida=next((v for v in vagas if v["id"]==vaga_id), None) if vaga_id else (vagas[0] if vagas else None)
-    if not escolhida: cur.close(); raise ErroNegocio("Não há vaga livre disponível para esse veículo e plano.")
-    cur.execute("SELECT id FROM movimentacoes WHERE vaga_id=%s AND aberta=1", (escolhida["id"],))
-    if cur.fetchone(): cur.close(); raise ErroNegocio("A vaga selecionada já está ocupada.")
-    cur.close()
-    with transacao():
-        cur=conn.cursor()
-        cur.execute("INSERT INTO movimentacoes (vaga_id,plano_id,tipo_veiculo_id,placa,veiculo_id,contrato_id,entrada_em,retroativa,criado_por) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", (escolhida["id"],plano["id"],tipo_veiculo_id,p,mensalista["veiculo_id"] if mensalista else None,mensalista["contrato_id"] if mensalista else None,entrada_em,int(retroativa),uid))
-        mid=cur.lastrowid; cur.close()
+    try:
+        cur.execute("SELECT id FROM movimentacoes WHERE placa=%s AND aberta=1", (p,))
+        if cur.fetchone(): raise ErroNegocio("Este veículo já está estacionado.")
+        # Só vale como mensalista com contrato vigente, veículo ativo e cliente ativo (igual à consulta de placa).
+        cur.execute("SELECT v.id AS veiculo_id,v.tipo_veiculo_id,cm.id AS contrato_id FROM veiculos v JOIN clientes c ON c.id=v.cliente_id AND c.ativo=1 JOIN contratos_mensalistas cm ON cm.veiculo_id=v.id AND cm.data_fim IS NULL WHERE v.placa=%s AND v.ativo=1", (p,))
+        mensalista=cur.fetchone()
+        if mensalista and mensalista["tipo_veiculo_id"] != tipo: raise ErroNegocio("O tipo de veículo não corresponde ao cadastro do mensalista.")
+        # Mensalista só ocupa vaga de plano mensal; horista, vaga de plano por hora. O plano vem da própria vaga.
+        cur.execute("SELECT g.id, g.numero, g.plano_id FROM vagas g JOIN planos pl ON pl.id=g.plano_id WHERE g.ativo=1 AND g.tipo_veiculo_id=%s AND pl.cobranca=%s ORDER BY g.numero", (tipo, "mensal" if mensalista else "hora"))
+        vagas=cur.fetchall()
+        cur.execute("SELECT vaga_id FROM movimentacoes WHERE aberta=1")
+        ocupadas={r["vaga_id"] for r in cur.fetchall()}
+        escolhida=escolher_vaga(vagas, ocupadas, vaga_id)
+        if not mensalista:
+            cur.execute("SELECT valor FROM precos WHERE plano_id=%s AND tipo_veiculo_id=%s", (escolhida["plano_id"], tipo))
+            preco=cur.fetchone()
+            if not preco or preco["valor"] is None or preco["valor"] <= 0:
+                raise ErroNegocio("Não há preço cadastrado para este plano e tipo de veículo. Cadastre em Catálogos > Preços.")
+    finally:
+        cur.close()
+    try:
+        with transacao():
+            cur=conn.cursor()
+            cur.execute("INSERT INTO movimentacoes (vaga_id,plano_id,tipo_veiculo_id,placa,veiculo_id,contrato_id,entrada_em,retroativa,criado_por) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", (escolhida["id"],escolhida["plano_id"],tipo,p,mensalista["veiculo_id"] if mensalista else None,mensalista["contrato_id"] if mensalista else None,entrada_em,int(retroativa),uid))
+            mid=cur.lastrowid; cur.close()
+    except IntegrityError as exc:
+        if getattr(exc, "errno", None) == 1062:
+            raise ErroNegocio("Outra entrada acabou de ocupar esta vaga ou esta placa. Atualize a tela e tente novamente.", 409)
+        raise
     return {"id":mid,"placa":p,"vaga":escolhida["numero"],"mensalista":bool(mensalista)}
 
 def registrar_saida(valor_placa, uid, caixa_id=None, forma_pagamento=None, retroativa=False, saida_em=None):

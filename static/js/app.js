@@ -10,11 +10,12 @@
   const dt = v => { if(!v)return "—"; const d=new Date(String(v).replace(" ","T")); return Number.isNaN(d.getTime())?esc(v):d.toLocaleString("pt-BR"); };
   const date = v => { if(!v)return "—"; const d=new Date(String(v).slice(0,10)+"T12:00:00"); return Number.isNaN(d.getTime())?esc(v):d.toLocaleDateString("pt-BR"); };
   function toast(message,type="success"){const root=$("#toast-region");if(!root){alert(message);return;}const el=document.createElement("div");el.className="toast "+type;el.textContent=message;root.append(el);}
-  async function api(url,opts={}){
+  async function api(url,opts={},tentarNovamente=true){
     const options={credentials:"same-origin",...opts};
     options.headers={Accept:"application/json",...(options.body?{"Content-Type":"application/json"}:{}),...(csrfToken?{"X-CSRFToken":csrfToken}:{}),...(options.headers||{})};
     let res;try{res=await fetch(url,options);}catch{throw new Error("Não foi possível conectar ao servidor Flask.");}
     const ct=res.headers.get("content-type")||"";let data=ct.includes("application/json")?await res.json():await res.text();
+    if(res.status===400&&data&&data.codigo==="csrf"&&tentarNovamente){await initCsrf();return api(url,opts,false);}
     if(!res.ok){if(res.status===401&&page!=="login")location.href="/login";throw new Error((data&&(data.mensagem||data.erro||data.message))||"Não foi possível concluir a operação.");}
     return data;
   }
