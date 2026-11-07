@@ -44,3 +44,75 @@ select[aria-invalid="false"],
 textarea[aria-invalid="false"] {
   border-color: #22a06b;
 }
+
+
+/* ---- Prévia/resumo de saída, gráficos de barras e histórico ---- */
+.exit-preview{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.exit-preview dl{display:grid;grid-template-columns:auto 1fr;gap:7px 16px;margin:0}
+.exit-preview dt{color:var(--muted);font-size:12px}.exit-preview dd{margin:0;text-align:right}
+.exit-preview-erro{color:var(--amber);border-color:var(--amber)}
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar-row{display:grid;grid-template-columns:78px 1fr auto;gap:10px;align-items:center;font-size:12px}
+.bar-row span{color:var(--muted)}.bar{background:var(--panel2);border-radius:20px;height:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue2),var(--blue));border-radius:20px}
+.bar-row b{min-width:34px;text-align:right}
+.export-links{display:flex;gap:8px;flex-wrap:wrap}
+.diff-ok{color:var(--green)}.diff-alerta{color:var(--red);font-weight:700}
+.toolbar label.field{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted)}
+.vacancy .badge{align-self:flex-start}
+
+a.btn{text-decoration:none;display:inline-flex;align-items:center}
+
+/* ---- Ações em cartões e tabelas, motivo, chave do autenticador ---- */
+.vacancy-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;justify-content:center}
+.vacancy.inactive{opacity:.55;border-style:dashed}
+.modal textarea,.panel textarea{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;resize:vertical}
+code.segredo{display:inline-block;padding:8px 12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);letter-spacing:.08em;font-size:15px;user-select:all}
+ol.passos{margin:0 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+
+
+/* ---- Correções do modo claro ----
+   O tema claro só trocava as variáveis de cor (--bg, --text, --panel...). Vários componentes tinham
+   cores escuras fixas (toast, notices, badges, botões, cartão de boas-vindas) ou herdavam --text
+   (que no claro é escuro) sobre fundo escuro: o texto ficava ilegível ou "sumia". */
+
+/* Itens que continuam escuros nos dois temas: o texto precisa ser sempre claro */
+.brand{color:#f5f8fb}
+.welcome-card{color:#fff}
+.welcome-card h2{color:#fff}
+body.light-theme .welcome-card .eyebrow{color:#d6b56d}
+
+/* Avisos (notice) */
+body.light-theme .notice-info{background:#e8f1fb;color:#1f4f82;border-color:#c5dbf2}
+body.light-theme .notice-warning{background:#fdf3dc;color:#7a5a12;border-color:#f0dca4}
+body.light-theme .notice-error{background:#fde8ea;color:#a12834;border-color:#f3c0c6}
+body.light-theme .notice-success{background:#e1f5ee;color:#13694f;border-color:#b6e3d3}
+
+/* Mensagens rápidas (toast) */
+body.light-theme .toast{background:#fff;color:var(--text);border-color:var(--line)}
+body.light-theme .toast.error{background:#fde8ea;color:#a12834;border-color:#f3c0c6}
+body.light-theme .toast.success{background:#e1f5ee;color:#13694f;border-color:#b6e3d3}
+
+/* Selos de status */
+body.light-theme .badge-green{background:#dcf4ea;color:#12684d}
+body.light-theme .badge-red{background:#fde3e6;color:#a3283a}
+body.light-theme .badge-amber{background:#fbefd2;color:#7d5a0f}
+body.light-theme .badge-blue{background:#e0ecfb;color:#1f5ea6}
+body.light-theme .badge-gray{background:#e9eef3;color:#55687a}
+
+/* Botões, ícones e linhas */
+body.light-theme .btn-danger{background:#fde8ea;color:#a12834;border-color:#f3c0c6}
+body.light-theme .btn-success{background:#e1f5ee;color:#13694f;border-color:#b6e3d3}
+body.light-theme .stat-icon{background:#e0ecfb;color:#2d72d2}
+body.light-theme .quick-action:hover{background:#eaf2fb;border-color:#9dc1ea}
+body.light-theme tbody tr:hover{background:#0000000a}
+
+/* Textos coloridos que ficavam apagados sobre fundo branco */
+body.light-theme .eyebrow,
+body.light-theme .footer>span:first-child{color:#856514}
+body.light-theme .form-error{color:#c0392b}
+body.light-theme .form-hint,
+body.light-theme .exit-preview-erro{color:#8a5d00}
+body.light-theme .diff-ok,
+body.light-theme .password-rules .valid{color:#12684d}
+body.light-theme .diff-alerta{color:#c0283a}

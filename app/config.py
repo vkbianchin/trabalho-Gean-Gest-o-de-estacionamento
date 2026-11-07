@@ -14,6 +14,10 @@ class Config:
     DB_PASSWORD = os.getenv("DB_PASSWORD", "")
     DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))
     LOG_FILE = os.getenv("LOG_FILE", "logs/estacionamento.log")
+    # 1 quando o sistema roda atrás de nginx/gunicorn: passa a enxergar o IP e o HTTPS reais do visitante.
+    TRUST_PROXY = os.getenv("TRUST_PROXY", "0") == "1"
+    # Confere a cada requisição se o usuário continua ativo (desligado nos testes sem banco).
+    REVALIDAR_SESSAO = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"

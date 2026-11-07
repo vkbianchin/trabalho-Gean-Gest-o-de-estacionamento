@@ -10,9 +10,13 @@ PERMISSOES = {
     "precos": {"administrador"},
     "configuracoes": {"administrador"},
     "cancelar": {"administrador"},
+    "desativar": {"administrador"},
+    "estrutura": {"administrador"},
     "retroativa": {"administrador"},
     "usuarios": {"administrador"},
     "auditoria": {"administrador"},
+    "financeiro": {"administrador"},
+    "relatorios": {"administrador"},
 }
 
 def exigir(permissao):

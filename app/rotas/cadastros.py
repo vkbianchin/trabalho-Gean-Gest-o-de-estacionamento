@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session
 from ..permissoes import exigir
 from ..seguranca import exigir_login
-from ..servicos import cadastros, crud
+from ..servicos import cadastros, crud, manutencao
 from ..erros import ErroNegocio
 
 bp=Blueprint("cadastros",__name__)
@@ -73,3 +73,28 @@ def criar_preco():
 def editar_preco(preco_id):
     cadastros.editar_preco(preco_id, request.get_json(force=True), exigir_login())
     return jsonify({"ok": True})
+
+# --- edição e situação (ativo/inativo) -------------------------------------------------
+@bp.get("/api/clientes/<int:cid>")
+@exigir("cadastros")
+def obter_cliente(cid): return jsonify(manutencao.obter_cliente(cid))
+
+@bp.put("/api/clientes/<int:cid>")
+@exigir("cadastros")
+def editar_cliente(cid): return jsonify(manutencao.editar_cliente(cid, request.get_json(force=True), exigir_login()))
+
+@bp.post("/api/clientes/<int:cid>/ativo")
+@exigir("desativar")
+def situacao_cliente(cid): return jsonify(manutencao.alterar_situacao_cliente(cid, bool(request.get_json(force=True).get("ativo")), exigir_login()))
+
+@bp.get("/api/veiculos/<int:vid>")
+@exigir("cadastros")
+def obter_veiculo(vid): return jsonify(manutencao.obter_veiculo(vid))
+
+@bp.put("/api/veiculos/<int:vid>")
+@exigir("cadastros")
+def editar_veiculo(vid): return jsonify(manutencao.editar_veiculo(vid, request.get_json(force=True), exigir_login()))
+
+@bp.post("/api/veiculos/<int:vid>/ativo")
+@exigir("desativar")
+def situacao_veiculo(vid): return jsonify(manutencao.alterar_situacao_veiculo(vid, bool(request.get_json(force=True).get("ativo")), exigir_login()))

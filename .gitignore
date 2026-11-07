@@ -1,8 +1,20 @@
+# Segredos e ambiente local (nunca versionar)
 .env
-.venv/
+.env.*
+!.env.example
 venv/
+.venv/
 __pycache__/
-.pytest_cache/
 *.py[cod]
+.pytest_cache/
+
+# Gerados em execução
 logs/
 backups/
+banco/schema_exportado.sql
+
+# Editor / sistema
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

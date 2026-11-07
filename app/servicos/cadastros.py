@@ -1,6 +1,6 @@
 from ..db import conexao
 from ..erros import ErroNegocio
-from ..validadores import cpf, telefone, email, cep, texto, placa
+from ..validadores import documento as validar_documento, tipo_pessoa as validar_tipo_pessoa, telefone, email, cep, texto, placa
 from ..auditoria import registrar as registrar_auditoria
 from mysql.connector.errors import IntegrityError
 from decimal import Decimal
@@ -18,16 +18,50 @@ def _todos(sql, params=()):
     cur.close()
     return resultado
 
+def dados_cadastrais(d, tipo):
+    """Valida os dados de cadastro de um cliente (sem o documento, que não muda depois de criado)."""
+    rotulo_nome = "razão social" if tipo == "juridica" else "nome"
+    return {
+        "nome": texto(d.get("nome"), rotulo_nome, 2, 100),
+        "telefone": telefone(d.get("telefone")),
+        "email": email(d.get("email")),
+        "cep": cep(d.get("cep")),
+        "logradouro": texto(d.get("logradouro"), "logradouro", 1, 150),
+        "numero": texto(str(d.get("numero", "")), "número", 1, 10),
+        "complemento": texto(d["complemento"], "complemento", 0, 60) if d.get("complemento") else None,
+        "bairro": texto(d.get("bairro"), "bairro", 1, 80),
+        "cidade": texto(d.get("cidade"), "cidade", 1, 80),
+        "uf": texto(d.get("uf"), "UF", 2, 2).upper(),
+    }
+
+
 def criar_cliente(d, uid):
+    """Cadastra pessoa física (CPF) ou jurídica (CNPJ). O campo antigo "cpf" ainda é aceito para pessoa física."""
     try:
-        valores = (texto(d.get("nome"),"nome",2,100), cpf(d.get("cpf")), telefone(d.get("telefone")), email(d.get("email")), cep(d.get("cep")), texto(d.get("logradouro"),"logradouro",1,150), texto(str(d.get("numero", "")),"número",1,10), texto(d["complemento"],"complemento",0,60) if d.get("complemento") else None, texto(d.get("bairro"),"bairro",1,80), texto(d.get("cidade"),"cidade",1,80), texto(d.get("uf"),"UF",2,2).upper(), uid)
+        tipo = validar_tipo_pessoa(d.get("tipo_pessoa"))
+        bruto = d.get("documento") if d.get("documento") not in (None, "") else d.get("cpf")
+        dados = {"tipo_pessoa": tipo, "documento": validar_documento(tipo, bruto), **dados_cadastrais(d, tipo)}
     except (ValueError, KeyError) as exc:
         raise ErroNegocio(str(exc))
-    cur = conexao().cursor()
-    cur.execute("INSERT INTO clientes (nome,cpf,telefone,email,cep,logradouro,numero,complemento,bairro,cidade,uf,criado_por) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", valores)
-    cid = cur.lastrowid
-    conexao().commit()
-    cur.close()
+    conn = conexao()
+    cur = conn.cursor()
+    try:
+        colunas = ", ".join(dados) + ", criado_por"
+        marcadores = ", ".join(["%s"] * (len(dados) + 1))
+        cur.execute(f"INSERT INTO clientes ({colunas}) VALUES ({marcadores})", [*dados.values(), uid])
+        cid = cur.lastrowid
+        registrar_auditoria("clientes", cid, "criou", uid, None, dados)
+        conn.commit()
+    except IntegrityError as exc:
+        conn.rollback()
+        if getattr(exc, "errno", None) == 1062:
+            raise ErroNegocio("Já existe um cliente cadastrado com este CPF/CNPJ.", 409)
+        raise
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
     return cid
 
 def criar_veiculo(d, uid):
@@ -39,11 +73,18 @@ def criar_veiculo(d, uid):
         cor_id = int(d["cor_id"]) if d.get("cor_id") else None
     except (ValueError, TypeError) as exc:
         raise ErroNegocio(str(exc) or "Dados do veículo inválidos.")
-    cur = conexao().cursor()
-    cur.execute("INSERT INTO veiculos (cliente_id,tipo_veiculo_id,placa,modelo_id,cor_id,criado_por) VALUES (%s,%s,%s,%s,%s,%s)", (cliente_id,tipo_id,placa_v,modelo_id,cor_id,uid))
-    vid = cur.lastrowid
-    conexao().commit()
-    cur.close()
+    conn = conexao()
+    cur = conn.cursor()
+    try:
+        cur.execute("INSERT INTO veiculos (cliente_id,tipo_veiculo_id,placa,modelo_id,cor_id,criado_por) VALUES (%s,%s,%s,%s,%s,%s)", (cliente_id,tipo_id,placa_v,modelo_id,cor_id,uid))
+        vid = cur.lastrowid
+        registrar_auditoria("veiculos", vid, "criou", uid, None, {"placa": placa_v, "cliente_id": cliente_id, "tipo_veiculo_id": tipo_id, "modelo_id": modelo_id, "cor_id": cor_id})
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
     return vid
 
 

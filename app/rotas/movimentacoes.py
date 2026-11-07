@@ -24,3 +24,9 @@ def saida():
     uid=exigir_login()
     aberto=servico_caixa.caixa_aberto(uid)  # o caixa vem do servidor (caixa aberto do usuário logado), não do navegador
     return jsonify(movimentacoes.registrar_saida(d.get("placa"),uid,aberto["id"] if aberto else None,d.get("forma_pagamento"))),200
+@bp.get("/api/saida/previa/<valor_placa>")
+@exigir("operacao")
+def previa_saida(valor_placa): return jsonify(movimentacoes.previa_saida(valor_placa))
+@bp.get("/api/historico/<valor_placa>")
+@exigir("operacao")
+def historico(valor_placa): return jsonify(movimentacoes.historico_placa(valor_placa))

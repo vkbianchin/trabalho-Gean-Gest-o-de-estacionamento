@@ -8,7 +8,15 @@ from .caixa import bp as caixa_bp
 from .sistema import bp as sistema_bp
 from .paginas import bp as paginas_bp
 from .administracao import bp as administracao_bp
+from .financeiro import bp as financeiro_bp
+from .relatorios import bp as relatorios_bp
+from .recibos import bp as recibos_bp
+from .cancelamentos import bp as cancelamentos_bp
+
+BLUEPRINTS = (acesso_bp, cadastros_bp, vagas_bp, contratos_bp, movimentacoes_bp, pagamentos_bp, caixa_bp,
+              sistema_bp, financeiro_bp, relatorios_bp, recibos_bp, cancelamentos_bp, administracao_bp, paginas_bp)
+
 
 def registrar_rotas(app):
-    for bp in (acesso_bp,cadastros_bp,vagas_bp,contratos_bp,movimentacoes_bp,pagamentos_bp,caixa_bp,sistema_bp,paginas_bp,administracao_bp):
+    for bp in BLUEPRINTS:
         app.register_blueprint(bp)

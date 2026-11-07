@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recibo nº {{ numero }} · ParkFlow</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/recibo.css') }}">
+  <script defer src="{{ url_for('static', filename='js/recibo.js') }}"></script>
+</head>
+<body>
+  <main class="recibo">
+    <header>
+      <h1>{{ estabelecimento.nome or "Estacionamento" }}</h1>
+      {% if estabelecimento.cnpj %}<p>CNPJ {{ estabelecimento.cnpj }}</p>{% endif %}
+      {% if estabelecimento.endereco %}<p>{{ estabelecimento.endereco }}</p>{% endif %}
+      {% if estabelecimento.telefone %}<p>Tel. {{ estabelecimento.telefone }}</p>{% endif %}
+    </header>
+    <h2>Recibo de pagamento nº {{ numero }}</h2>
+    <p class="aviso">Documento sem valor fiscal.</p>
+    <dl>
+      <dt>Cliente</dt><dd>{{ cliente }}</dd>
+      {% if documento %}<dt>CPF/CNPJ</dt><dd>{{ documento }}</dd>{% endif %}
+      {% if placa %}<dt>Placa</dt><dd>{{ placa }}</dd>{% endif %}
+      {% if mensalidade %}
+        <dt>Referência</dt><dd>Mensalidade de {{ competencia.strftime("%m/%Y") if competencia else "—" }}</dd>
+      {% else %}
+        {% if vaga %}<dt>Vaga</dt><dd>{{ vaga }}</dd>{% endif %}
+        {% if entrada_em %}<dt>Entrada</dt><dd>{{ entrada_em.strftime("%d/%m/%Y %H:%M") }}</dd>{% endif %}
+        {% if saida_em %}<dt>Saída</dt><dd>{{ saida_em.strftime("%d/%m/%Y %H:%M") }}</dd>{% endif %}
+        {% if permanencia %}<dt>Permanência</dt><dd>{{ permanencia }}</dd>{% endif %}
+      {% endif %}
+      <dt>Forma de pagamento</dt><dd>{{ forma }}</dd>
+      {% if pago_em %}<dt>Pago em</dt><dd>{{ pago_em.strftime("%d/%m/%Y %H:%M") }}</dd>{% endif %}
+      {% if atendente %}<dt>Atendente</dt><dd>{{ atendente }}</dd>{% endif %}
+    </dl>
+    <p class="total">Valor recebido: <strong>R$ {{ "%.2f"|format(valor)|replace(".", ",") }}</strong></p>
+    <div class="acoes"><button type="button" id="imprimir">Imprimir / salvar em PDF</button> <a href="/">Voltar ao sistema</a></div>
+  </main>
+</body>
+</html>

@@ -4,7 +4,7 @@ Uso (na pasta do projeto, com o ambiente virtual ativado):
     python -m scripts.dados_teste
 
 - Mostra em qual banco vai gravar e só continua se você digitar SIM.
-- Pode ser rodado várias vezes: o que já existe (CPF, placa, número de vaga, preço, contrato) é pulado.
+- Pode ser rodado várias vezes: o que já existe (CPF/CNPJ, placa, número de vaga, preço, contrato) é pulado.
 - Os clientes de teste têm "(Teste)" no nome, para você encontrar e apagar depois.
 """
 from collections import Counter
@@ -113,13 +113,13 @@ def main():
         clientes = []
         for i, nome in enumerate(CLIENTES):
             cpf = gerar_cpf(100200300 + i * 7919)
-            ja = um("SELECT id FROM clientes WHERE cpf=%s", (cpf,))
+            ja = um("SELECT id FROM clientes WHERE documento=%s", (cpf,))
             if ja:
                 resumo["cliente: já existia"] += 1
                 clientes.append(ja["id"])
                 continue
             cid = tentar("cliente", lambda n=nome, c=cpf, k=i: cadastros.criar_cliente({
-                "nome": f"{n} (Teste)", "cpf": c, "telefone": f"4999991{k:04d}", "email": f"teste{k + 1}@exemplo.com",
+                "nome": f"{n} (Teste)", "tipo_pessoa": "fisica", "documento": c, "telefone": f"4999991{k:04d}", "email": f"teste{k + 1}@exemplo.com",
                 "cep": "89560000", "logradouro": "Rua das Flores", "numero": str(10 + k), "bairro": "Centro",
                 "cidade": "Videira", "uf": "SC"}, uid))
             clientes.append(cid)

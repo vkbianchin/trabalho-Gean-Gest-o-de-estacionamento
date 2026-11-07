@@ -1,0 +1,16 @@
+CORRECOES APLICADAS
+
+1. Cadastro de modelos:
+   - O formulario agora solicita o tipo de veiculo.
+   - O backend valida o tipo selecionado e inclui tipo_veiculo_id no INSERT quando a coluna existe.
+   - A marca continua sendo validada e salva quando a tabela possui marca_id.
+   - A verificacao de duplicidade considera tipo e marca, quando aplicavel.
+
+2. Verificacoes:
+   - Arquivos Python compilados sem erros de sintaxe.
+   - JavaScript validado com node --check.
+
+IMPORTANTE:
+- O arquivo .env nao foi incluido por conter configuracoes e possivelmente credenciais.
+- Preserve seu .env local ao substituir os arquivos do projeto.
+- A validacao final de funcionamento precisa ser feita contra o seu banco MySQL real.

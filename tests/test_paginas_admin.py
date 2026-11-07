@@ -2,8 +2,8 @@ import pytest
 from app.permissoes import PERMISSOES
 from app.rotas.paginas import PAGINAS_PERMISSAO
 
-SO_ADMINISTRADOR = ["/contratos", "/configuracoes", "/usuarios", "/auditoria"]
-LIBERADAS_PARA_OPERADOR = ["/", "/caixa", "/movimentacoes", "/clientes", "/veiculos", "/catalogos", "/vagas", "/pagamentos"]
+SO_ADMINISTRADOR = ["/contratos", "/configuracoes", "/usuarios", "/auditoria", "/financeiro", "/relatorios"]
+LIBERADAS_PARA_OPERADOR = ["/", "/caixa", "/movimentacoes", "/clientes", "/veiculos", "/catalogos", "/vagas", "/pagamentos", "/historico"]
 
 
 def logar(client, nivel):

@@ -54,6 +54,7 @@ class CursorFalso:
 def ambiente(app, monkeypatch):
     banco = BancoFalso()
     relogio = {"agora": AGORA}
+    monkeypatch.setattr(usuarios, "_ler_coluna", lambda uid, coluna: None)  # sem 2FA nem preferências salvas
     conferencias = {"senhas": 0}
 
     def verificar(senha, hash_guardado):

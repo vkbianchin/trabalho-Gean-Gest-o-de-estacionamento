@@ -47,7 +47,7 @@ def encerrar(contrato_id, uid, data_fim, motivo):
     if motivo not in {"cancelado_cliente","inadimplencia","troca_veiculo","outro"}: raise ErroNegocio("Motivo de encerramento inválido.")
     conn=conexao(); cur=conn.cursor(dictionary=True); cur.execute("SELECT veiculo_id FROM contratos_mensalistas WHERE id=%s AND data_fim IS NULL",(contrato_id,)); c=cur.fetchone(); cur.close()
     if not c: raise ErroNegocio("Contrato vigente não encontrado.",404)
-    cur=conn.cursor(); cur.execute("SELECT id FROM movimentacoes WHERE veiculo_id=%s AND aberta=1",(c["veiculo_id"],)); estacionado=cur.fetchone(); cur.close()
+    cur=conn.cursor(); cur.execute("SELECT id FROM movimentacoes WHERE veiculo_id=%s AND saida_em IS NULL AND cancelada=0",(c["veiculo_id"],)); estacionado=cur.fetchone(); cur.close()
     if estacionado: raise ErroNegocio("Não é possível encerrar o contrato enquanto o veículo estiver estacionado.")
     with transacao():
         cur=conn.cursor(); cur.execute("UPDATE contratos_mensalistas SET data_fim=%s,motivo_encerramento=%s,atualizado_por=%s WHERE id=%s AND data_fim IS NULL",(fim,motivo,uid,contrato_id)); cur.close()

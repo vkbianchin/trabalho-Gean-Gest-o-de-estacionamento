@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify
 from ..permissoes import exigir
 from ..seguranca import exigir_login
-from ..servicos.usuarios import criar_usuario
+from ..servicos.usuarios import criar_usuario, redefinir_senha_admin, reativar_usuario
 from ..db import conexao
 from ..erros import ErroNegocio
+from ..auditoria import registrar as registrar_auditoria
 bp=Blueprint("administracao",__name__)
 @bp.get("/api/usuarios")
 @exigir("usuarios")
@@ -25,7 +26,7 @@ def desativar(uid):
     if alvo["nivel_acesso"]=="administrador" and alvo["ativo"]:
         cur=conn.cursor(); cur.execute("SELECT COUNT(*) FROM usuarios WHERE nivel_acesso='administrador' AND ativo=1"); total=cur.fetchone()[0]; cur.close()
         if total<=1: raise ErroNegocio("É necessário manter pelo menos um administrador ativo.")
-    cur=conn.cursor(); cur.execute("UPDATE usuarios SET ativo=0,atualizado_por=%s WHERE id=%s",(atual,uid)); conn.commit(); cur.close(); return jsonify({"mensagem":"Usuário desativado."})
+    cur=conn.cursor(); cur.execute("UPDATE usuarios SET ativo=0,atualizado_por=%s WHERE id=%s",(atual,uid)); registrar_auditoria("usuarios",uid,"desativou",atual,{"ativo":1},{"ativo":0}); conn.commit(); cur.close(); return jsonify({"mensagem":"Usuário desativado."})
 @bp.get("/api/auditoria")
 @exigir("auditoria")
 def auditoria():
@@ -34,3 +35,10 @@ def auditoria():
         for k in ("dados_antes","dados_depois"):
             if r[k] is not None and isinstance(r[k],(bytes,bytearray)): r[k]=r[k].decode("utf-8")
     return jsonify(rows)
+
+@bp.post("/api/usuarios/<int:uid>/redefinir-senha")
+@exigir("usuarios")
+def redefinir_senha(uid): return jsonify(redefinir_senha_admin(uid,exigir_login()))
+@bp.post("/api/usuarios/<int:uid>/ativar")
+@exigir("usuarios")
+def ativar(uid): return jsonify(reativar_usuario(uid,exigir_login()))

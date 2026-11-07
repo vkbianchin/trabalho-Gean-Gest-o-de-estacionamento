@@ -6,7 +6,9 @@
   <meta name="csrf-token" content="">
   <title>{% block title %}{{ titulo or "ParkFlow" }}{% endblock %} · ParkFlow</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/nucleo.js') }}"></script>
+  {% if pagina in ('relatorios', 'financeiro') %}<script defer src="{{ url_for('static', filename='js/telas/_periodo.js') }}"></script>{% endif %}
+  {% if pagina %}<script defer src="{{ url_for('static', filename='js/telas/' ~ pagina ~ '.js') }}"></script>{% endif %}
 </head>
 <body data-page="{{ pagina or '' }}">
   <div class="app-shell">
@@ -17,6 +19,7 @@
         <a href="/" data-nav="painel"><span>◫</span>Operação</a>
         <a href="/caixa" data-nav="caixa"><span>＄</span>Caixa</a>
         <a href="/movimentacoes" data-nav="movimentacoes"><span>↕</span>Movimentações</a>
+        <a href="/historico" data-nav="historico"><span>◷</span>Histórico do veículo</a>
       </nav>
       <div class="nav-label">CADASTROS</div>
       <nav class="nav-list">
@@ -32,6 +35,8 @@
       </nav>
       <div class="nav-label admin-nav-label">ADMINISTRAÇÃO</div>
       <nav class="nav-list admin-nav">
+        <a href="/financeiro" data-nav="financeiro"><span>◈</span>Financeiro</a>
+        <a href="/relatorios" data-nav="relatorios"><span>▥</span>Relatórios</a>
         <a href="/configuracoes" data-nav="configuracoes"><span>⚙</span>Configurações</a>
         <a href="/usuarios" data-nav="usuarios"><span>♧</span>Usuários</a>
         <a href="/auditoria" data-nav="auditoria"><span>≡</span>Auditoria</a>
@@ -41,6 +46,7 @@
         <button class="nav-logout" id="account-menu-button" type="button">Minha conta <span>⌄</span></button>
         <div class="account-menu" id="account-menu" hidden>
           <a href="/trocar-senha">Alterar senha</a>
+          <a href="/seguranca">Segurança da conta</a>
           <button type="button" id="settings-shortcut">Ajustes de aparência</button>
           <button type="button" id="logout-button">Sair do sistema</button>
         </div>

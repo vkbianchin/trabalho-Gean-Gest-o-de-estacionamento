@@ -1,0 +1,18 @@
+[Unit]
+Description=ParkFlow - Gestão de Estacionamento (gunicorn)
+After=network.target mariadb.service
+
+[Service]
+User=parkflow
+Group=parkflow
+WorkingDirectory=/opt/parkflow/app
+# Lê FLASK_SECRET_KEY, DB_* etc. do .env da pasta do projeto (permissão 600).
+ExecStart=/opt/parkflow/app/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 --access-logfile - run:app
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

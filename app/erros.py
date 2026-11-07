@@ -13,27 +13,27 @@ def registrar_erros(app):
     def erro_negocio(exc):
         if request.path.startswith("/api/"):
             return jsonify({"erro": exc.mensagem}), exc.status
-        return render_template("_em_construcao.html", mensagem=exc.mensagem), exc.status
+        return render_template("erro.html", mensagem=exc.mensagem), exc.status
 
     @app.errorhandler(CSRFError)
     def erro_csrf(_exc):
         mensagem = "Sua sessão de segurança expirou. Atualize a página e tente novamente."
         if request.path.startswith("/api/"):
             return jsonify({"erro": mensagem, "codigo": "csrf"}), 400
-        return render_template("_em_construcao.html", mensagem=mensagem), 400
+        return render_template("erro.html", mensagem=mensagem), 400
 
     @app.errorhandler(404)
     def nao_encontrado(_exc):
         if request.path.startswith("/api/"):
             return jsonify({"erro": "Recurso não encontrado."}), 404
-        return render_template("_em_construcao.html", mensagem="Página não encontrada."), 404
+        return render_template("erro.html", mensagem="Página não encontrada."), 404
 
     @app.errorhandler(500)
     def erro_interno(exc):
         app.logger.exception("Erro interno: %s", exc)
         if request.path.startswith("/api/"):
             return jsonify({"erro": "Ocorreu um erro interno. Consulte o log do sistema."}), 500
-        return render_template("_em_construcao.html", mensagem="Ocorreu um erro interno."), 500
+        return render_template("erro.html", mensagem="Ocorreu um erro interno."), 500
 
     @app.errorhandler(MySQLError)
     def erro_mysql(exc):
@@ -45,4 +45,4 @@ def registrar_erros(app):
             mensagem = "Um dos registros relacionados não existe ou não está disponível."
         if request.path.startswith("/api/"):
             return jsonify({"erro": mensagem}), 409 if getattr(exc, "errno", None) in (1062, 1452) else 500
-        return render_template("_em_construcao.html", mensagem=mensagem), 500
+        return render_template("erro.html", mensagem=mensagem), 500
